@@ -10,14 +10,14 @@ class TimeTable:
         TimeTable.timetable.append(flight)
 
     def ReturnDetailsStr(index):
-        tmpTuple = (TimeTable.timetable[index].code,TimeTable.timetable[index].state,TimeTable.timetable[index].time)
+        tmpTuple = ("ROK",TimeTable.timetable[index].code,TimeTable.timetable[index].state,TimeTable.timetable[index].time)
         return " ".join(tmpTuple)
 
     def SearchFlight(searchItem):
         for x in range(len(TimeTable.timetable)):
             if TimeTable.timetable[x].code == searchItem:
                 return x
-        return None
+        return "RERR"
 
 class Flight:
 
@@ -34,10 +34,10 @@ def Worker(conn, add):
         if protocolData[0] == "READ":
             print(data.decode())
             position = TimeTable.SearchFlight(protocolData[1])
-            if position != None:
+            if position != "RERR":
                 conn.sendall(TimeTable.ReturnDetailsStr(0).encode())
             else:
-                conn.sendall("Flight wasn't found".encode())
+                conn.sendall(position.encode())
 
 
 def main():
@@ -47,7 +47,7 @@ def main():
     print(TimeTable.ReturnDetailsStr(0))
 
 
-    serverAdd = ("localhost",1235)
+    serverAdd = ("localhost",1236)
 
     #Creating, binding and listening on localhost:1234
     doorSock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
