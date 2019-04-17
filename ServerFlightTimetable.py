@@ -2,9 +2,11 @@
 import threading
 import socket
 import sys
+import time
 
 class TimeTable:
     timetable = []
+    dataLock = threading.Lock()
 
     def addFlight(flight):
         TimeTable.timetable.append(flight)
@@ -19,6 +21,19 @@ class TimeTable:
                 return x
         return "RERR"
 
+    def AddFlight(protocolData):
+        TimeTable.timetable.append(Flight(protocolData[1],protocolData[2],protocolData[3]))
+
+    def DeleteFlight(protocolData):
+        position = TimeTable.SearchFlight(protocolData[1])
+        TimeTable.timetable.pop(position)
+
+    def ChangeFlight(protocolData):
+        position = TimeTable.SearchFlight(protocolData[1])
+        TimeTable.timetable[position].state = protocolData[2]
+        TimeTable.timetable[position].time = protocolData[3]
+        return TimeTable.timetable[position]
+
 class Flight:
 
     def __init__(self,code,state,time):
@@ -29,23 +44,46 @@ class Flight:
 
 def Worker(conn, add):
     while True:
+        TimeTable.dataLock.acquire()
         data = conn.recv(1024)
         protocolData = data.decode().split(" ")
         if protocolData[0] == "READ":
-            print(data.decode())
             position = TimeTable.SearchFlight(protocolData[1])
             if position != "RERR":
-                conn.sendall(TimeTable.ReturnDetailsStr(0).encode())
+                conn.sendall(TimeTable.ReturnDetailsStr(position).encode())
             else:
                 conn.sendall(position.encode())
+        elif protocolData[0] == "WRITE":
+            n1W = len(TimeTable.timetable)
+            TimeTable.AddFlight(protocolData)
+            n2W = len(TimeTable.timetable)
+            if n2W > n1W:
+                conn.sendall("WOK".encode())
+            else:
+                conn.sendall("WERR".encode())
+        elif protocolData[0] == "DEL":
+            n1D = len(TimeTable.timetable)
+            TimeTable.DeleteFlight(protocolData)
+            n2D = len(TimeTable.timetable)
+            if n2D < n1D:
+                conn.sendall("DOK".encode())
+            else:
+                conn.sendall("DERR".encode())
+        elif protocolData[0] == "CHANGE":
+
+            changedObj = TimeTable.ChangeFlight(protocolData)
+            if changedObj.state == protocolData[2] and changedObj.time == protocolData[3]:
+                conn.sendall("CHOK".encode())
+            else:
+                conn.sendall("CHERR".encode())
+        TimeTable.dataLock.release()
+        time.sleep(10)
 
 
 def main():
     f1 = Flight("ah123","boarding","17.30")
 
     TimeTable.addFlight(f1)
-    print(TimeTable.ReturnDetailsStr(0))
-
 
     serverAdd = ("localhost",1236)
 
