@@ -13,7 +13,7 @@ def reader(sock):
         sendStr = " ".join([action,inputStr])
         sock.sendall(sendStr.encode())
 
-        #Receiving the answer from the server
+        #Receiving the reply from the server
         data = sock.recv(1024)
         data = data.decode().split(" ")
         if data[0] == "ROK":
@@ -26,6 +26,7 @@ def reader(sock):
 def writer(sock):
 
     while True:
+        #Sending the desired action and the details of the flight
         action = input("Please enter the action you want to perform (WRITE/DEL/CHANGE): ")
         code = input("Please enter the flight's code: ")
         if action != "DEL":
@@ -38,7 +39,7 @@ def writer(sock):
         print(sendStr)
         sock.sendall(sendStr.encode())
 
-        #Receiving the answer from the server
+        #Receiving the reply from the server
         data = sock.recv(1024)
         data = data.decode()
         if data == "WOK":
@@ -51,6 +52,7 @@ def writer(sock):
             print("Error")
 
 def main():
+    #Creating the socket and connecting to the server's open port
     add = ("localhost",1236)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

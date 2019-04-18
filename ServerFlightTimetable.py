@@ -2,8 +2,8 @@
 import threading
 import socket
 import sys
-import time
 
+#Class containing the timetable's variables and functions
 class TimeTable:
     timetable = []
     dataLock = threading.Lock()
@@ -34,6 +34,7 @@ class TimeTable:
         TimeTable.timetable[position].time = protocolData[3]
         return TimeTable.timetable[position]
 
+#Class containing the flight's details
 class Flight:
 
     def __init__(self,code,state,time):
@@ -47,12 +48,14 @@ def Worker(conn, add):
         TimeTable.dataLock.acquire()
         data = conn.recv(1024)
         protocolData = data.decode().split(" ")
+        #Reply to the READ action
         if protocolData[0] == "READ":
             position = TimeTable.SearchFlight(protocolData[1])
             if position != "RERR":
                 conn.sendall(TimeTable.ReturnDetailsStr(position).encode())
             else:
                 conn.sendall(position.encode())
+        #Reply to the WRITE action
         elif protocolData[0] == "WRITE":
             n1W = len(TimeTable.timetable)
             TimeTable.AddFlight(protocolData)
@@ -61,6 +64,7 @@ def Worker(conn, add):
                 conn.sendall("WOK".encode())
             else:
                 conn.sendall("WERR".encode())
+        #Reply to the DEL action
         elif protocolData[0] == "DEL":
             n1D = len(TimeTable.timetable)
             TimeTable.DeleteFlight(protocolData)
@@ -69,6 +73,7 @@ def Worker(conn, add):
                 conn.sendall("DOK".encode())
             else:
                 conn.sendall("DERR".encode())
+        #Reply to the CHANGE action
         elif protocolData[0] == "CHANGE":
 
             changedObj = TimeTable.ChangeFlight(protocolData)
@@ -77,7 +82,6 @@ def Worker(conn, add):
             else:
                 conn.sendall("CHERR".encode())
         TimeTable.dataLock.release()
-        time.sleep(10)
 
 
 def main():
