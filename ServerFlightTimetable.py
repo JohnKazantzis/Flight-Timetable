@@ -45,18 +45,20 @@ class Flight:
 
 def Worker(conn, add):
     while True:
-        TimeTable.dataLock.acquire()
         data = conn.recv(1024)
         protocolData = data.decode().split(" ")
         #Reply to the READ action
         if protocolData[0] == "READ":
+            TimeTable.dataLock.acquire()
             position = TimeTable.SearchFlight(protocolData[1])
             if position != "RERR":
                 conn.sendall(TimeTable.ReturnDetailsStr(position).encode())
             else:
                 conn.sendall(position.encode())
+            TimeTable.dataLock.release()
         #Reply to the WRITE action
         elif protocolData[0] == "WRITE":
+            TimeTable.dataLock.acquire()
             n1W = len(TimeTable.timetable)
             TimeTable.AddFlight(protocolData)
             n2W = len(TimeTable.timetable)
@@ -64,8 +66,10 @@ def Worker(conn, add):
                 conn.sendall("WOK".encode())
             else:
                 conn.sendall("WERR".encode())
+            TimeTable.dataLock.release()
         #Reply to the DEL action
         elif protocolData[0] == "DEL":
+            TimeTable.dataLock.acquire()
             n1D = len(TimeTable.timetable)
             TimeTable.DeleteFlight(protocolData)
             n2D = len(TimeTable.timetable)
@@ -73,15 +77,16 @@ def Worker(conn, add):
                 conn.sendall("DOK".encode())
             else:
                 conn.sendall("DERR".encode())
+            TimeTable.dataLock.release()
         #Reply to the CHANGE action
         elif protocolData[0] == "CHANGE":
-
+            TimeTable.dataLock.acquire()
             changedObj = TimeTable.ChangeFlight(protocolData)
             if changedObj.state == protocolData[2] and changedObj.time == protocolData[3]:
                 conn.sendall("CHOK".encode())
             else:
                 conn.sendall("CHERR".encode())
-        TimeTable.dataLock.release()
+            TimeTable.dataLock.release()
 
 
 def main():
